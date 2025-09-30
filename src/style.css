@@ -1,0 +1,188 @@
+:root {
+  --background-color: #000;
+  --text-color: #fff;
+  --bold-text-color: #000;
+  --nav-panel-bg: rgba(255, 255, 255, 0.2);
+  --nav-panel-border: rgba(255, 255, 255, 0.3);
+  --nav-button-bg: rgba(0, 0, 0, 0.5);
+  --nav-button-hover-bg: rgba(0, 0, 0, 0.8);
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: var(--text-color);
+  background-color: var(--background-color);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] {
+  --background-color: #000;
+  --text-color: #fff;
+  --bold-text-color: #000;
+  --nav-panel-bg: rgba(255, 255, 255, 0.2);
+  --nav-panel-border: rgba(255, 255, 255, 0.3);
+  --nav-button-bg: rgba(0, 0, 0, 0.5);
+  --nav-button-hover-bg: rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --background-color: #ffffff;
+  --text-color: #213547;
+  --bold-text-color: #ffffff;
+  --nav-panel-bg: rgba(0, 0, 0, 0.2);
+  --nav-panel-border: rgba(0, 0, 0, 0.05);
+  --nav-button-bg: rgba(255, 255, 255, 0.6);
+  --nav-button-hover-bg: rgba(255, 255, 255, 0.8);
+  color-scheme: light;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+[contenteditable] {
+  caret-color: var(--text-color);
+  min-height: 100vh;
+  padding: 2rem 2rem calc(2rem + 40px) 2rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "DM Mono", monospace;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+[contenteditable]:empty:before {
+  content: attr(placeholder);
+  pointer-events: none;
+  opacity: 0.5;
+  display: block; /* For Firefox */
+}
+
+[contenteditable] > div:first-child {
+  font-size: 2rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+[contenteditable] div:empty {
+  width: 100%;
+  min-height: 1.5rem;
+}
+
+/* @todo
+[contenteditable] div:has(> br)::before {
+  content: "~";
+}
+*/
+
+[contenteditable] b {
+  background-color: #f0d358;
+  color: var(--bold-text-color);
+  border-radius: 0.5rem;
+  padding: 0.1rem 0.3rem;
+}
+
+[contenteditable] i {
+  opacity: 0.9;
+}
+
+[contenteditable] img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+}
+
+[contenteditable]:focus {
+  outline: none;
+}
+
+nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+nav > div {
+  margin: auto;
+  padding: 0.5rem;
+  border-radius: 2rem;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  backdrop-filter: blur(20px);
+  filter: saturate(180%);
+  background-color: var(--nav-panel-bg);
+  border: 1px solid var(--nav-panel-border);
+
+  opacity: 0.3;
+  transform: translateY(80%);
+  transition: opacity, transform 250ms cubic-bezier(0.18, 0.89, 0.32, 1.27);
+}
+
+nav:hover > div {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+nav > div button {
+  cursor: pointer;
+  border: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--nav-button-bg);
+  transform: translateY(0);
+  transition: background-color,
+    transform 250ms cubic-bezier(0.18, 0.89, 0.32, 1.27);
+}
+
+nav > div button:hover {
+  transform: translateY(-5%);
+  background-color: var(--nav-button-hover-bg);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --background-color: #ffffff;
+    --text-color: #213547;
+    --bold-text-color: #ffffff;
+    --nav-panel-bg: rgba(0, 0, 0, 0.2);
+    --nav-panel-border: rgba(0, 0, 0, 0.05);
+    --nav-button-bg: rgba(255, 255, 255, 0.6);
+    --nav-button-hover-bg: rgba(255, 255, 255, 0.8);
+    color-scheme: light;
+  }
+}
+
+@media (max-width: 500px) {
+  nav > div {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
