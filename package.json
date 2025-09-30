@@ -15,6 +15,7 @@
   "dependencies": {
     "@types/dompurify": "3.2.0",
     "dompurify": "3.2.7",
+    "html2canvas": "1.4.1",
     "microtip": "0.2.2"
   }
 }

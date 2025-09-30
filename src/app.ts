@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import html2canvas from "html2canvas";
 
 const STORAGE_KEY = "note";
 const CHANNEL_NAME = "note-sync";
@@ -74,6 +75,33 @@ function describeColorSchemePreference(
     return `System (${capitalise(effective)})`;
   }
   return capitalise(preference);
+}
+
+function resolveNoteBackgroundColor(element: HTMLElement): string {
+  const ownerDocument = element.ownerDocument ?? document;
+  const defaultView = ownerDocument.defaultView ?? window;
+
+  const elementBackground = defaultView.getComputedStyle(element).backgroundColor;
+  if (elementBackground && elementBackground !== "transparent" && elementBackground !== "rgba(0, 0, 0, 0)") {
+    return elementBackground;
+  }
+
+  const rootBackground = ownerDocument.documentElement
+    ? defaultView.getComputedStyle(ownerDocument.documentElement).getPropertyValue("--background-color").trim()
+    : "";
+  if (rootBackground) {
+    return rootBackground;
+  }
+
+  const body = ownerDocument.body ?? document.body;
+  return defaultView.getComputedStyle(body).backgroundColor;
+}
+
+function createImageFileName(): string {
+  const baseTitle = (document.title || "note").trim().toLowerCase();
+  const normalisedBase = baseTitle.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "note";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `${normalisedBase}-${timestamp}.png`;
 }
 
 function addMatchMediaChangeListener(
@@ -551,6 +579,39 @@ function bootstrap() {
       try {
         navigator.clipboard.writeText(noteElement.innerHTML || "");
       } catch {}
+    });
+  }
+
+  const imageExportElement = document.getElementById("image-export");
+  const imageExportButton =
+    imageExportElement instanceof HTMLButtonElement ? imageExportElement : null;
+  if (!imageExportElement) {
+    console.warn("#image-export button is missing; image export unavailable.");
+  } else if (!imageExportButton) {
+    console.warn("#image-export element is not a button; image export unavailable.");
+  } else {
+    imageExportButton.addEventListener("click", async () => {
+      imageExportButton.disabled = true;
+      try {
+        const backgroundColor = resolveNoteBackgroundColor(noteElement);
+        const canvas = await html2canvas(noteElement, {
+          backgroundColor,
+          scale: window.devicePixelRatio || 1,
+          useCORS: true,
+        });
+        const dataUrl = canvas.toDataURL("image/png");
+        const downloadLink = document.createElement("a");
+        downloadLink.href = dataUrl;
+        downloadLink.download = createImageFileName();
+        downloadLink.rel = "noopener";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+      } catch (error) {
+        console.error("Unable to export note as image", error);
+      } finally {
+        imageExportButton.disabled = false;
+      }
     });
   }
 
