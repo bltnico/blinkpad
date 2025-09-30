@@ -20,6 +20,12 @@ interface DocumentPictureInPicture {
   requestWindow(options?: DocumentPictureInPictureOptions): Promise<Window>;
 }
 
+function getStorageKey(): string {
+  const urlParams = new URLSearchParams(window.location.search);
+  const scope = urlParams.get("scope");
+  return scope ?? STORAGE_KEY;
+}
+
 function getSystemColorScheme(query?: MediaQueryList): ColorScheme {
   const mediaQuery = query ?? window.matchMedia("(prefers-color-scheme: dark)");
   return mediaQuery.matches ? "dark" : "light";
@@ -70,7 +76,8 @@ function describeColorSchemePreference(
   preference: ColorSchemePreference,
   effective: ColorScheme
 ): string {
-  const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+  const capitalise = (value: string) =>
+    value.charAt(0).toUpperCase() + value.slice(1);
   if (preference === "auto") {
     return `System (${capitalise(effective)})`;
   }
@@ -81,13 +88,21 @@ function resolveNoteBackgroundColor(element: HTMLElement): string {
   const ownerDocument = element.ownerDocument ?? document;
   const defaultView = ownerDocument.defaultView ?? window;
 
-  const elementBackground = defaultView.getComputedStyle(element).backgroundColor;
-  if (elementBackground && elementBackground !== "transparent" && elementBackground !== "rgba(0, 0, 0, 0)") {
+  const elementBackground =
+    defaultView.getComputedStyle(element).backgroundColor;
+  if (
+    elementBackground &&
+    elementBackground !== "transparent" &&
+    elementBackground !== "rgba(0, 0, 0, 0)"
+  ) {
     return elementBackground;
   }
 
   const rootBackground = ownerDocument.documentElement
-    ? defaultView.getComputedStyle(ownerDocument.documentElement).getPropertyValue("--background-color").trim()
+    ? defaultView
+        .getComputedStyle(ownerDocument.documentElement)
+        .getPropertyValue("--background-color")
+        .trim()
     : "";
   if (rootBackground) {
     return rootBackground;
@@ -99,7 +114,8 @@ function resolveNoteBackgroundColor(element: HTMLElement): string {
 
 function createImageFileName(): string {
   const baseTitle = (document.title || "note").trim().toLowerCase();
-  const normalisedBase = baseTitle.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "note";
+  const normalisedBase =
+    baseTitle.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "note";
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   return `${normalisedBase}-${timestamp}.png`;
 }
@@ -262,7 +278,7 @@ function createNoteSynchronizer(
   channel: BroadcastChannel
 ): NoteSync {
   const persistContent = debounce((value: string) => {
-    localStorage.setItem(STORAGE_KEY, value);
+    localStorage.setItem(getStorageKey(), value);
     channel.postMessage(value);
   }, DEBOUNCE_DELAY_MS);
 
@@ -278,7 +294,7 @@ function createNoteSynchronizer(
   const commit = (value: string, options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
     const sanitized = apply(value);
-    localStorage.setItem(STORAGE_KEY, sanitized);
+    localStorage.setItem(getStorageKey(), sanitized);
     if (options.broadcast !== false) {
       channel.postMessage(sanitized);
     }
@@ -293,7 +309,7 @@ function createNoteSynchronizer(
   const clear = (options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
     apply("");
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(getStorageKey());
     if (options.broadcast !== false) {
       channel.postMessage("");
     }
@@ -309,10 +325,10 @@ function initializeNoteContent(
   const { element } = context;
   const sync = createNoteSynchronizer(element, channel);
 
-  const savedValue = localStorage.getItem(STORAGE_KEY) || "";
+  const savedValue = localStorage.getItem(getStorageKey()) || "";
   const sanitizedSavedValue = sync.apply(savedValue);
   if (sanitizedSavedValue !== savedValue) {
-    localStorage.setItem(STORAGE_KEY, sanitizedSavedValue);
+    localStorage.setItem(getStorageKey(), sanitizedSavedValue);
   }
 
   element.addEventListener("input", () => {
@@ -423,8 +439,14 @@ function setupColorSchemeManagement(button: HTMLButtonElement | null) {
 
     const systemScheme = getSystemColorScheme(systemQuery);
     const effectiveScheme = preference === "auto" ? systemScheme : preference;
-    const description = describeColorSchemePreference(preference, effectiveScheme);
-    const nextPreference = getNextColorSchemePreference(preference, systemScheme);
+    const description = describeColorSchemePreference(
+      preference,
+      effectiveScheme
+    );
+    const nextPreference = getNextColorSchemePreference(
+      preference,
+      systemScheme
+    );
     const nextEffectiveScheme =
       nextPreference === "auto"
         ? getSystemColorScheme(systemQuery)
@@ -588,7 +610,9 @@ function bootstrap() {
   if (!imageExportElement) {
     console.warn("#image-export button is missing; image export unavailable.");
   } else if (!imageExportButton) {
-    console.warn("#image-export element is not a button; image export unavailable.");
+    console.warn(
+      "#image-export element is not a button; image export unavailable."
+    );
   } else {
     imageExportButton.addEventListener("click", async () => {
       imageExportButton.disabled = true;
