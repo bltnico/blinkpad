@@ -7,12 +7,42 @@ type DebouncedFunction<T extends (...args: any[]) => void> = ((
 
 function getStorageKey(): string {
   const urlParams = new URLSearchParams(window.location.search);
-  const scope = urlParams.get("scope");
+  const scope = urlParams.get("s");
   return scope ?? STORAGE_KEY;
 }
 
 function sanitizeHtml(markup: string): string {
   return DOMPurify.sanitize(markup, { USE_PROFILES: { html: true } });
+}
+
+function normalizeNoteElement(element: HTMLDivElement): string {
+  const ownerDocument = element.ownerDocument ?? document;
+  const textContent = element.textContent ?? "";
+  const trimmedText = textContent.replace(/\u200b/gi, "").trim();
+
+  if (!trimmedText) {
+    if (element.innerHTML !== "<div><br></div>") {
+      element.innerHTML = "<div><br></div>";
+    }
+    element.setAttribute("data-empty", "true");
+    return element.innerHTML;
+  }
+
+  element.removeAttribute("data-empty");
+
+  const hasElementChild = Array.from(element.childNodes).some(
+    (node) => node.nodeType === Node.ELEMENT_NODE
+  );
+
+  if (!hasElementChild) {
+    const wrapper = ownerDocument.createElement("div");
+    while (element.firstChild) {
+      wrapper.appendChild(element.firstChild);
+    }
+    element.appendChild(wrapper);
+  }
+
+  return element.innerHTML;
 }
 
 function updateDocumentTitles(sourceElement: HTMLDivElement) {
@@ -158,23 +188,24 @@ function createNoteSynchronizer(
     if (element.innerHTML !== sanitized) {
       element.innerHTML = sanitized;
     }
+    const normalized = normalizeNoteElement(element);
     updateDocumentTitles(element);
-    return sanitized;
+    return normalized;
   };
 
   const commit = (value: string, options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
-    const sanitized = apply(value);
-    localStorage.setItem(getStorageKey(), sanitized);
+    const normalized = apply(value);
+    localStorage.setItem(getStorageKey(), normalized);
     if (options.broadcast !== false) {
-      channel.postMessage(sanitized);
+      channel.postMessage(normalized);
     }
-    return sanitized;
+    return normalized;
   };
 
   const queue = (value: string) => {
-    const sanitized = apply(value);
-    persistContent(sanitized);
+    const normalized = apply(value);
+    persistContent(normalized);
   };
 
   const clear = (options: { broadcast?: boolean } = {}) => {
@@ -197,13 +228,14 @@ export function initializeNoteContent(
   const sync = createNoteSynchronizer(element, channel);
 
   const savedValue = localStorage.getItem(getStorageKey()) || "";
-  const sanitizedSavedValue = sync.apply(savedValue);
-  if (sanitizedSavedValue !== savedValue) {
-    localStorage.setItem(getStorageKey(), sanitizedSavedValue);
+  const normalizedSavedValue = sync.apply(savedValue);
+  if (normalizedSavedValue !== savedValue) {
+    localStorage.setItem(getStorageKey(), normalizedSavedValue);
   }
 
   element.addEventListener("input", () => {
-    sync.queue(element.innerHTML);
+    const normalizedHtml = normalizeNoteElement(element);
+    sync.queue(normalizedHtml);
   });
 
   channel.addEventListener("message", (event) => {
