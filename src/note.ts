@@ -69,11 +69,9 @@ function normalizeNoteElement(element: HTMLDivElement): string {
   const textContent = element.textContent ?? "";
   const trimmedText = textContent.replace(/\u200b/gi, "").trim();
 
-  let hasNonTextContent = false;
-  if (!trimmedText) {
-    hasNonTextContent =
-      element.querySelector(NON_TEXT_CONTENT_SELECTOR) !== null;
-  }
+  const hasNonTextContent =
+    trimmedText === "" &&
+    element.querySelector(NON_TEXT_CONTENT_SELECTOR) !== null;
 
   if (!trimmedText && !hasNonTextContent) {
     if (element.innerHTML !== "<div><br></div>") {
@@ -85,9 +83,17 @@ function normalizeNoteElement(element: HTMLDivElement): string {
 
   element.removeAttribute("data-empty");
 
-  const hasElementChild = Array.from(element.childNodes).some(
-    (node) => node.nodeType === Node.ELEMENT_NODE
-  );
+  const hasElementChild = Array.from(element.childNodes).some((node) => {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return false;
+    }
+    const elementNode = node as HTMLElement;
+    if (elementNode.matches(NON_TEXT_CONTENT_SELECTOR)) {
+      return true;
+    }
+    const text = elementNode.textContent?.replace(/\u200b/gi, "").trim();
+    return Boolean(text);
+  });
 
   if (!hasElementChild) {
     const wrapper = ownerDocument.createElement("div");
@@ -362,6 +368,22 @@ function createNoteSynchronizer(
   ): string => {
     const sanitized = sanitizeHtml(value);
     const normalized = normalizeMarkup(sanitized, ownerDocument);
+    const summaryElement = ownerDocument.createElement("div");
+    summaryElement.innerHTML = normalized;
+    const summaryText = summaryElement.textContent?.replace(/\u200b/gi, "").trim();
+    const hasContent = Boolean(summaryText);
+    const hasNonTextContent =
+      summaryElement.querySelector(NON_TEXT_CONTENT_SELECTOR) !== null;
+    const isEffectivelyEmpty = !hasContent && !hasNonTextContent;
+    if (isEffectivelyEmpty) {
+      lastPersistedValue = "";
+      void removeStoredValue(storageKey);
+      void deleteNoteMetadata(slug);
+      if (options.broadcast !== false) {
+        channel.postMessage("");
+      }
+      return "";
+    }
     if (normalized === lastPersistedValue) {
       return normalized;
     }
