@@ -1,8 +1,9 @@
 {
-  "name": "trash-note",
+  "name": "draft-note",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
