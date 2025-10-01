@@ -30,11 +30,23 @@ function persistColorSchemePreference(preference: ColorSchemePreference) {
 
 function applyColorSchemePreference(preference: ColorSchemePreference) {
   const root = document.documentElement;
+  const metaTheme = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]'
+  );
+
+  const setMetaThemeColor = (scheme: ColorScheme) => {
+    if (!metaTheme) return;
+    const color = scheme === "dark" ? "#000000" : "#ffffff";
+    metaTheme.setAttribute("content", color);
+  };
+
   if (preference === "auto") {
+    setMetaThemeColor(getSystemColorScheme());
     root.removeAttribute("data-theme");
     return;
   }
 
+  setMetaThemeColor(preference);
   root.setAttribute("data-theme", preference);
 }
 
@@ -82,9 +94,7 @@ function addMatchMediaChangeListener(
   return () => {};
 }
 
-export function setupColorSchemeManagement(
-  button: HTMLButtonElement | null
-) {
+export function setupColorSchemeManagement(button: HTMLButtonElement | null) {
   const systemQuery = window.matchMedia("(prefers-color-scheme: dark)");
   let preference = loadStoredColorSchemePreference();
 
@@ -109,7 +119,7 @@ export function setupColorSchemeManagement(
       nextPreference,
       nextEffectiveScheme
     );
-    const label = `Color scheme: ${description}. Click to switch to ${nextDescription}.`;
+    const label = `Color scheme: ${description}.\nClick to switch to ${nextDescription}.`;
     button.setAttribute("aria-label", label);
     button.setAttribute("aria-pressed", String(preference !== "auto"));
   };
@@ -137,4 +147,3 @@ export function setupColorSchemeManagement(
     updateToggleDescription();
   });
 }
-
