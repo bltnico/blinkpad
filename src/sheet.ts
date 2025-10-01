@@ -1,7 +1,12 @@
 import { createBottomSheet } from "@plainsheet/core";
 import { decompressFromUTF16 } from "lz-string";
-import { NOTE_KEY_PREFIX } from "./constants.ts";
+import { NOTE_KEY_PREFIX, NOTE_INDEX_STORAGE_KEY } from "./constants.ts";
 import { isMobileDevice } from "./utils/device.ts";
+import {
+  loadNoteMetadataMap,
+  saveNoteMetadata,
+  type NoteMetadata,
+} from "./utils/noteMetadata.ts";
 
 type NoteEntry = {
   slug: string;
@@ -114,13 +119,16 @@ export function setupSavedNotesSheet(): void {
 
   let storageReadFailed = false;
 
-  const collectSlugs = () => {
+  const collectSlugs = (metadataMap: Record<string, NoteMetadata>) => {
     storageReadFailed = false;
-    const slugs = new Set<string>();
+    const slugs = new Set<string>(Object.keys(metadataMap));
     try {
       for (let index = 0; index < localStorage.length; index += 1) {
         const key = localStorage.key(index);
-        if (key && key.startsWith(NOTE_KEY_PREFIX)) {
+        if (!key || key === NOTE_INDEX_STORAGE_KEY) {
+          continue;
+        }
+        if (key.startsWith(NOTE_KEY_PREFIX)) {
           const slug = key.slice(NOTE_KEY_PREFIX.length);
           if (slug) {
             slugs.add(slug);
@@ -140,18 +148,34 @@ export function setupSavedNotesSheet(): void {
 
   const buildEntries = (): NoteEntry[] => {
     const activeSlug = getActiveSlug();
-    const slugs = collectSlugs();
+    const metadataMap = loadNoteMetadataMap();
+    const slugs = collectSlugs(metadataMap);
     if (storageReadFailed) {
       return [];
     }
     return slugs.map((slug) => {
       const storageKey = `${NOTE_KEY_PREFIX}${slug}`;
-      const storedValue = decodeStoredValue(localStorage.getItem(storageKey));
-      const plainText = toPlainText(storedValue);
-      const [firstLine] = plainText.split(/\n+/).map((line) => line.trim());
-      const title =
-        firstLine ||
-        (slug === "root" ? "Root note" : slug.replace(/[_-]/g, " "));
+      const metadata = metadataMap[slug];
+      let title = metadata?.title;
+
+      if (!title) {
+        const storedValueRaw = localStorage.getItem(storageKey);
+        const storedValue = decodeStoredValue(storedValueRaw);
+        const plainText = toPlainText(storedValue);
+        const [firstLine] = plainText.split(/\n+/).map((line) => line.trim());
+        title =
+          firstLine ||
+          (slug === "root" ? "Root note" : slug.replace(/[_-]/g, " "));
+
+        if (storedValueRaw !== null) {
+          saveNoteMetadata({
+            slug,
+            title,
+            updatedAt: metadata?.updatedAt ?? Date.now(),
+          });
+        }
+      }
+
       const pathSegment = slug === "root" ? "" : slug;
       const encodedSegment = pathSegment ? encodeURIComponent(pathSegment) : "";
       const url = encodedSegment

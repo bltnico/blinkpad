@@ -5,6 +5,10 @@ import {
   NOTE_KEY_PREFIX,
   DEFAULT_STORAGE_KEY,
 } from "./constants.ts";
+import {
+  deleteNoteMetadata,
+  saveNoteMetadata,
+} from "./utils/noteMetadata.ts";
 
 type DebouncedFunction<T extends (...args: any[]) => void> = ((
   ...args: Parameters<T>
@@ -83,6 +87,67 @@ function updateDocumentTitles(sourceElement: HTMLDivElement) {
   if (ownerDocument && ownerDocument !== document) {
     ownerDocument.title = title;
   }
+}
+
+type IdleCallbackHandle = number;
+
+type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining(): number }) => void;
+
+type IdleRequestOptions = {
+  timeout?: number;
+};
+
+type ScheduleTitleUpdate = ((immediate?: boolean) => void) & {
+  cancel: () => void;
+  flush: () => void;
+};
+
+function requestIdleCallbackCompat(
+  callback: IdleCallback,
+  options?: IdleRequestOptions
+): IdleCallbackHandle {
+  if (typeof window.requestIdleCallback === "function") {
+    return window.requestIdleCallback(callback, options);
+  }
+  return window.setTimeout(() => {
+    callback({ didTimeout: true, timeRemaining: () => 0 });
+  }, options?.timeout ?? 1);
+}
+
+function cancelIdleCallbackCompat(handle: IdleCallbackHandle) {
+  if (typeof window.cancelIdleCallback === "function") {
+    window.cancelIdleCallback(handle);
+    return;
+  }
+  window.clearTimeout(handle);
+}
+
+function deriveTitleFromMarkup(markup: string): string {
+  if (!markup) {
+    return "Note";
+  }
+  const scratch = document.createElement("div");
+  scratch.innerHTML = markup;
+  const textContent = scratch.textContent ?? "";
+  const firstLine = textContent.split(/\r?\n/)[0]?.trim() ?? "";
+  return firstLine || "Note";
+}
+
+function getSlugFromStorageKey(storageKey: string): string {
+  if (storageKey.startsWith(NOTE_KEY_PREFIX)) {
+    const slug = storageKey.slice(NOTE_KEY_PREFIX.length);
+    return slug || "root";
+  }
+  return "root";
+}
+
+function normalizeMarkup(
+  markup: string,
+  ownerDocument: Document
+): string {
+  const container = ownerDocument.createElement("div");
+  container.innerHTML = markup;
+  return normalizeNoteElement(container as HTMLDivElement);
 }
 
 function debounce<T extends (...args: any[]) => void>(
@@ -206,9 +271,85 @@ function createNoteSynchronizer(
   channel: BroadcastChannel,
   storageKey = getStorageKey()
 ): NoteSync {
+  const ownerDocument = element.ownerDocument ?? document;
+  const slug = getSlugFromStorageKey(storageKey);
+
+  let lastKnownDomValue = normalizeNoteElement(element);
+  let lastPersistedValue: string | null = null;
+
+  const scheduleDocumentTitleUpdate: ScheduleTitleUpdate = (() => {
+    const run = () => {
+      updateDocumentTitles(element);
+    };
+
+    let timeoutId: number | undefined;
+    let idleHandle: IdleCallbackHandle | null = null;
+
+    const enqueue = () => {
+      if (idleHandle !== null) {
+        cancelIdleCallbackCompat(idleHandle);
+      }
+      idleHandle = requestIdleCallbackCompat(() => {
+        idleHandle = null;
+        run();
+      }, { timeout: 500 });
+    };
+
+    const schedule = ((immediate?: boolean) => {
+      if (immediate) {
+        schedule.cancel();
+        run();
+        return;
+      }
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        enqueue();
+      }, 250);
+    }) as ScheduleTitleUpdate;
+
+    schedule.cancel = () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+      if (idleHandle !== null) {
+        cancelIdleCallbackCompat(idleHandle);
+        idleHandle = null;
+      }
+    };
+
+    schedule.flush = () => {
+      schedule.cancel();
+      run();
+    };
+
+    return schedule;
+  })();
+
+  const persistImmediately = (
+    value: string,
+    options: { broadcast?: boolean } = {}
+  ): string => {
+    const sanitized = sanitizeHtml(value);
+    const normalized = normalizeMarkup(sanitized, ownerDocument);
+    if (normalized === lastPersistedValue) {
+      return normalized;
+    }
+    lastPersistedValue = normalized;
+    const title = deriveTitleFromMarkup(normalized);
+    saveNoteMetadata({ slug, title, updatedAt: Date.now() });
+    writeStoredValue(storageKey, normalized);
+    if (options.broadcast !== false) {
+      channel.postMessage(normalized);
+    }
+    return normalized;
+  };
+
   const persistContent = debounce((value: string) => {
-    writeStoredValue(storageKey, value);
-    channel.postMessage(value);
+    persistImmediately(value);
   }, DEBOUNCE_DELAY_MS);
 
   const apply = (value: string) => {
@@ -217,32 +358,46 @@ function createNoteSynchronizer(
       element.innerHTML = sanitized;
     }
     const normalized = normalizeNoteElement(element);
-    updateDocumentTitles(element);
+    lastKnownDomValue = normalized;
+    persistImmediately(normalized, { broadcast: false });
+    scheduleDocumentTitleUpdate.flush();
     return normalized;
   };
 
   const commit = (value: string, options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
-    const normalized = apply(value);
-    writeStoredValue(storageKey, normalized);
-    if (options.broadcast !== false) {
-      channel.postMessage(normalized);
+    const sanitized = sanitizeHtml(value);
+    if (element.innerHTML !== sanitized) {
+      element.innerHTML = sanitized;
     }
-    return normalized;
+    const normalized = normalizeNoteElement(element);
+    lastKnownDomValue = normalized;
+    const persisted = persistImmediately(normalized, options);
+    scheduleDocumentTitleUpdate.flush();
+    return persisted;
   };
 
   const queue = (value: string) => {
-    const normalized = apply(value);
-    persistContent(normalized);
+    if (value === lastKnownDomValue) {
+      return;
+    }
+    lastKnownDomValue = value;
+    scheduleDocumentTitleUpdate();
+    persistContent(value);
   };
 
   const clear = (options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
-    apply("");
+    element.innerHTML = "";
+    const normalizedEmpty = normalizeNoteElement(element);
+    lastKnownDomValue = normalizedEmpty;
+    lastPersistedValue = "";
+    deleteNoteMetadata(slug);
     localStorage.removeItem(storageKey);
     if (options.broadcast !== false) {
       channel.postMessage("");
     }
+    scheduleDocumentTitleUpdate.flush();
   };
 
   return { apply, queue, commit, clear };
@@ -257,10 +412,7 @@ export function initializeNoteContent(
   const sync = createNoteSynchronizer(element, channel, storageKey);
 
   const savedValue = readStoredValue(storageKey);
-  const normalizedSavedValue = sync.apply(savedValue);
-  if (normalizedSavedValue !== savedValue) {
-    writeStoredValue(storageKey, normalizedSavedValue);
-  }
+  sync.apply(savedValue);
 
   element.addEventListener("input", () => {
     const normalizedHtml = normalizeNoteElement(element);

@@ -5,3 +5,4 @@ export const POP_OUT_BUTTON_ID = "popout";
 export const DEBOUNCE_DELAY_MS = 700;
 export const COLOR_SCHEME_BUTTON_ID = "color-scheme";
 export const COLOR_SCHEME_STORAGE_KEY = "color-scheme-preference";
+export const NOTE_INDEX_STORAGE_KEY = "dnv1-index";
