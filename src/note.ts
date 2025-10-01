@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { DEBOUNCE_DELAY_MS, STORAGE_KEY } from "./constants.ts";
 
 type DebouncedFunction<T extends (...args: any[]) => void> = ((
@@ -9,6 +10,28 @@ function getStorageKey(): string {
   const urlParams = new URLSearchParams(window.location.search);
   const scope = urlParams.get("s");
   return scope ?? STORAGE_KEY;
+}
+
+function writeStoredValue(storageKey: string, value: string): void {
+  localStorage.setItem(storageKey, compressToUTF16(value));
+}
+
+function readStoredValue(storageKey: string): string {
+  const storedValue = localStorage.getItem(storageKey);
+  if (storedValue === null) {
+    return "";
+  }
+
+  try {
+    const decompressed = decompressFromUTF16(storedValue);
+    if (decompressed !== null) {
+      return decompressed;
+    }
+  } catch {
+    /* ignore malformed compressed content and fall back to raw value */
+  }
+
+  return storedValue;
 }
 
 function sanitizeHtml(markup: string): string {
@@ -176,10 +199,11 @@ export type NoteSync = {
 
 function createNoteSynchronizer(
   element: HTMLDivElement,
-  channel: BroadcastChannel
+  channel: BroadcastChannel,
+  storageKey = getStorageKey()
 ): NoteSync {
   const persistContent = debounce((value: string) => {
-    localStorage.setItem(getStorageKey(), value);
+    writeStoredValue(storageKey, value);
     channel.postMessage(value);
   }, DEBOUNCE_DELAY_MS);
 
@@ -196,7 +220,7 @@ function createNoteSynchronizer(
   const commit = (value: string, options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
     const normalized = apply(value);
-    localStorage.setItem(getStorageKey(), normalized);
+    writeStoredValue(storageKey, normalized);
     if (options.broadcast !== false) {
       channel.postMessage(normalized);
     }
@@ -211,7 +235,7 @@ function createNoteSynchronizer(
   const clear = (options: { broadcast?: boolean } = {}) => {
     persistContent.cancel();
     apply("");
-    localStorage.removeItem(getStorageKey());
+    localStorage.removeItem(storageKey);
     if (options.broadcast !== false) {
       channel.postMessage("");
     }
@@ -225,12 +249,13 @@ export function initializeNoteContent(
   channel: BroadcastChannel
 ): NoteSync {
   const { element } = context;
-  const sync = createNoteSynchronizer(element, channel);
+  const storageKey = getStorageKey();
+  const sync = createNoteSynchronizer(element, channel, storageKey);
 
-  const savedValue = localStorage.getItem(getStorageKey()) || "";
+  const savedValue = readStoredValue(storageKey);
   const normalizedSavedValue = sync.apply(savedValue);
   if (normalizedSavedValue !== savedValue) {
-    localStorage.setItem(getStorageKey(), normalizedSavedValue);
+    writeStoredValue(storageKey, normalizedSavedValue);
   }
 
   element.addEventListener("input", () => {

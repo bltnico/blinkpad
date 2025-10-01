@@ -69,7 +69,11 @@ function bootstrap() {
   } else {
     shareNoteTrigger.addEventListener("click", () => {
       try {
+        // @todo share as html file
+        // const blob = new Blob([noteElement.innerHTML], { type: "text/html" });
+        // const file = new File([blob], "shared.html", { type: "text/html" });
         navigator.share?.({
+          // files: [file],
           title: document.title || "Note",
           text: noteElement.outerText,
         });
