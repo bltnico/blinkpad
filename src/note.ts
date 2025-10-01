@@ -1,6 +1,10 @@
 import DOMPurify from "dompurify";
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
-import { DEBOUNCE_DELAY_MS, STORAGE_KEY } from "./constants.ts";
+import {
+  DEBOUNCE_DELAY_MS,
+  NOTE_KEY_PREFIX,
+  DEFAULT_STORAGE_KEY,
+} from "./constants.ts";
 
 type DebouncedFunction<T extends (...args: any[]) => void> = ((
   ...args: Parameters<T>
@@ -9,7 +13,7 @@ type DebouncedFunction<T extends (...args: any[]) => void> = ((
 function getStorageKey(): string {
   const urlParams = new URLSearchParams(window.location.search);
   const scope = urlParams.get("s");
-  return scope ?? STORAGE_KEY;
+  return scope ? `${NOTE_KEY_PREFIX}${scope}` : DEFAULT_STORAGE_KEY;
 }
 
 function writeStoredValue(storageKey: string, value: string): void {

@@ -12,6 +12,7 @@ import {
   COLOR_SCHEME_BUTTON_ID,
   POP_OUT_BUTTON_ID,
 } from "./constants.ts";
+import { setupSavedNotesSheet } from "./sheet.ts";
 
 function bootstrap() {
   const noteElement = getNoteElement();
@@ -113,6 +114,8 @@ function bootstrap() {
       }
     });
   }
+
+  setupSavedNotesSheet();
 
   window.addEventListener("beforeunload", () => {
     channel.close();

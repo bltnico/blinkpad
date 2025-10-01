@@ -6,7 +6,13 @@
   --nav-panel-border: rgba(255, 255, 255, 0.3);
   --nav-button-bg: rgba(0, 0, 0, 0.5);
   --nav-button-hover-bg: rgba(0, 0, 0, 0.8);
-  --nav-height: 100px;
+  --nav-height: 84px;
+  --sheet-backdrop-color: rgba(0, 0, 0, 0.8);
+  --sheet-card-bg: rgba(255, 255, 255, 0.06);
+  --sheet-card-border: rgba(255, 255, 255, 0.12);
+  --sheet-card-hover-bg: rgba(255, 255, 255, 0.14);
+  --sheet-card-active-bg: rgba(240, 211, 88, 0.24);
+  --sheet-text-muted: rgba(255, 255, 255, 0.68);
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -30,6 +36,12 @@
   --nav-panel-border: rgba(255, 255, 255, 0.3);
   --nav-button-bg: rgba(0, 0, 0, 0.5);
   --nav-button-hover-bg: rgba(0, 0, 0, 0.8);
+  --sheet-backdrop-color: rgba(0, 0, 0, 0.8);
+  --sheet-card-bg: rgba(255, 255, 255, 0.06);
+  --sheet-card-border: rgba(255, 255, 255, 0.12);
+  --sheet-card-hover-bg: rgba(255, 255, 255, 0.14);
+  --sheet-card-active-bg: rgba(240, 211, 88, 0.24);
+  --sheet-text-muted: rgba(255, 255, 255, 0.68);
   color-scheme: dark;
 }
 
@@ -41,6 +53,12 @@
   --nav-panel-border: rgba(0, 0, 0, 0.05);
   --nav-button-bg: rgba(255, 255, 255, 0.6);
   --nav-button-hover-bg: rgba(255, 255, 255, 0.8);
+  --sheet-backdrop-color: rgba(255, 255, 255, 0.8);
+  --sheet-card-bg: rgba(255, 255, 255, 0.8);
+  --sheet-card-border: rgba(0, 0, 0, 0.08);
+  --sheet-card-hover-bg: rgba(33, 53, 71, 0.08);
+  --sheet-card-active-bg: rgba(240, 211, 88, 0.24);
+  --sheet-text-muted: rgba(33, 53, 71, 0.68);
   color-scheme: light;
 }
 
@@ -91,12 +109,6 @@ body {
   min-height: 1.5rem;
 }
 
-/* @todo
-[contenteditable] div:has(> br)::before {
-  content: "~";
-}
-*/
-
 [contenteditable] b {
   background-color: #f0d358;
   color: var(--bold-text-color);
@@ -134,12 +146,12 @@ nav {
 
 nav > div {
   margin: auto;
-  padding: 0.5rem;
-  border-radius: 2rem;
+  padding: 0.35rem;
+  border-radius: 1.75rem;
   width: fit-content;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 
   backdrop-filter: blur(20px);
   filter: saturate(180%);
@@ -159,9 +171,9 @@ nav:hover > div {
 nav > div button {
   cursor: pointer;
   border: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 100%;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,6 +197,12 @@ nav > div button:hover {
     --nav-panel-border: rgba(0, 0, 0, 0.05);
     --nav-button-bg: rgba(255, 255, 255, 0.6);
     --nav-button-hover-bg: rgba(255, 255, 255, 0.8);
+
+    --sheet-card-bg: rgba(255, 255, 255, 0.8);
+    --sheet-card-border: rgba(0, 0, 0, 0.08);
+    --sheet-card-hover-bg: rgba(33, 53, 71, 0.08);
+    --sheet-card-active-bg: rgba(240, 211, 88, 0.24);
+    --sheet-text-muted: rgba(33, 53, 71, 0.68);
     color-scheme: light;
   }
 }

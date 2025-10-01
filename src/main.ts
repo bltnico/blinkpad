@@ -1,5 +1,6 @@
 import "microtip/microtip.css";
-import "./style.css";
+import "./styles/app.css";
+import "./styles/sheet.css";
 import "./app";
 
 if ("serviceWorker" in navigator) {
