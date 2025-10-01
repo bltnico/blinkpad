@@ -4,6 +4,7 @@ import { setupColorSchemeManagement } from "./colorScheme.ts";
 import { POP_OUT_BUTTON_ID, COLOR_SCHEME_BUTTON_ID } from "./constants.ts";
 import { restoreNote, type NotePlacement, type NoteSync } from "./note.ts";
 import { isMobileDevice } from "./utils/device.ts";
+import { setupNewNoteSheet } from "./newNoteSheet.ts";
 
 type NavbarOptions = {
   context: NotePlacement;
@@ -73,6 +74,11 @@ function setupNewNoteButton(noteElement: HTMLDivElement, noteSync: NoteSync) {
     invalid: "#new element is not a button; reset action unavailable.",
   });
   if (!newNoteTrigger) return;
+
+  const sheetInitialized = setupNewNoteSheet(newNoteTrigger);
+  if (sheetInitialized) {
+    return;
+  }
 
   newNoteTrigger.addEventListener("click", () => {
     noteSync.clear();

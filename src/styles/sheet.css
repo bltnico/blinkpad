@@ -122,6 +122,101 @@
   gap: 1rem;
 }
 
+.note-sheet__intro {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--sheet-text-muted);
+}
+
+.note-sheet__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.note-sheet__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.note-sheet__label > span:first-child {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.note-sheet__label input[type="text"] {
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--sheet-card-border);
+  background: var(--sheet-card-bg);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.note-sheet__label input[type="text"]::placeholder {
+  color: var(--sheet-text-muted);
+}
+
+.note-sheet__label input[type="text"]:focus-visible {
+  outline: none;
+  border-color: rgba(240, 211, 88, 0.6);
+}
+
+.note-sheet__hint {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sheet-text-muted);
+}
+
+.note-sheet__warning {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(210, 86, 86, 0.32);
+  background: rgba(210, 86, 86, 0.14);
+  color: #d24c4c;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
+.note-sheet__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.note-sheet__button {
+  padding: 0.75rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--sheet-card-border);
+  background: var(--sheet-card-bg);
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.note-sheet__button:hover,
+.note-sheet__button:focus-visible {
+  outline: none;
+  background: var(--sheet-card-hover-bg);
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+
+.note-sheet__button--primary {
+  background: var(--sheet-card-hover-bg);
+  color: var(--text-color);
+  border-color: transparent;
+}
+
 .note-sheet-list {
   display: block;
 }
