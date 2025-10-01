@@ -1,4 +1,5 @@
 import { NOTE_INDEX_STORAGE_KEY } from "../constants.ts";
+import storage from "../storage.ts";
 
 export type NoteMetadata = {
   slug: string;
@@ -12,12 +13,13 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 };
 
-function readIndex(): NoteMetadataIndex {
+async function readIndex(): Promise<NoteMetadataIndex> {
   try {
-    const rawValue = localStorage.getItem(NOTE_INDEX_STORAGE_KEY);
+    const rawValue = await storage.getItem<string>(NOTE_INDEX_STORAGE_KEY);
     if (!rawValue) {
       return {};
     }
+
     const parsed = JSON.parse(rawValue);
     if (!isPlainObject(parsed)) {
       return {};
@@ -37,20 +39,20 @@ function readIndex(): NoteMetadataIndex {
   }
 }
 
-function writeIndex(index: NoteMetadataIndex) {
+async function writeIndex(index: NoteMetadataIndex) {
   try {
-    localStorage.setItem(NOTE_INDEX_STORAGE_KEY, JSON.stringify(index));
+    await storage.setItem(NOTE_INDEX_STORAGE_KEY, JSON.stringify(index));
   } catch (error) {
     console.error("Unable to persist note metadata index", error);
   }
 }
 
-export function loadNoteMetadataMap(): NoteMetadataIndex {
+export async function loadNoteMetadataMap(): Promise<NoteMetadataIndex> {
   return readIndex();
 }
 
-export function saveNoteMetadata(metadata: NoteMetadata): void {
-  const index = readIndex();
+export async function saveNoteMetadata(metadata: NoteMetadata): Promise<void> {
+  const index = await readIndex();
   const existing = index[metadata.slug];
   if (
     existing &&
@@ -60,14 +62,14 @@ export function saveNoteMetadata(metadata: NoteMetadata): void {
     return;
   }
   index[metadata.slug] = metadata;
-  writeIndex(index);
+  await writeIndex(index);
 }
 
-export function deleteNoteMetadata(slug: string): void {
-  const index = readIndex();
+export async function deleteNoteMetadata(slug: string): Promise<void> {
+  const index = await readIndex();
   if (!index[slug]) {
     return;
   }
   delete index[slug];
-  writeIndex(index);
+  await writeIndex(index);
 }

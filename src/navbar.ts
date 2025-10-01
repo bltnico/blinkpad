@@ -145,7 +145,7 @@ function setupColorSchemeToggle() {
     missing: `#${COLOR_SCHEME_BUTTON_ID} button is missing; color scheme toggle unavailable.`,
     invalid: `#${COLOR_SCHEME_BUTTON_ID} element is not a button; color scheme toggle unavailable.`,
   });
-  setupColorSchemeManagement(colorSchemeButton);
+  void setupColorSchemeManagement(colorSchemeButton);
 }
 
 export function setupNavbar({ context, noteElement, noteSync }: NavbarOptions) {

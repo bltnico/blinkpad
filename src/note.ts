@@ -5,6 +5,7 @@ import {
   NOTE_KEY_PREFIX,
   DEFAULT_STORAGE_KEY,
 } from "./constants.ts";
+import storage from "./storage.ts";
 import { deleteNoteMetadata, saveNoteMetadata } from "./utils/noteMetadata.ts";
 
 type DebouncedFunction<T extends (...args: any[]) => void> = ((
@@ -17,33 +18,51 @@ function getStorageKey(): string {
   return scope ? `${NOTE_KEY_PREFIX}${scope}` : DEFAULT_STORAGE_KEY;
 }
 
-function writeStoredValue(storageKey: string, value: string): void {
-  localStorage.setItem(storageKey, compressToUTF16(value));
+async function writeStoredValue(storageKey: string, value: string): Promise<void> {
+  try {
+    await storage.setItem(storageKey, compressToUTF16(value));
+  } catch (error) {
+    console.error("Unable to persist note content", error);
+  }
 }
 
-function readStoredValue(storageKey: string): string {
-  const storedValue = localStorage.getItem(storageKey);
-  if (storedValue === null) {
+async function readStoredValue(storageKey: string): Promise<string> {
+  try {
+    const storedValue = await storage.getItem<string>(storageKey);
+    if (storedValue === null) {
+      return "";
+    }
+
+    try {
+      const decompressed = decompressFromUTF16(storedValue);
+      if (decompressed !== null) {
+        return decompressed;
+      }
+    } catch {
+      /* ignore malformed compressed content and fall back to raw value */
+    }
+
+    return storedValue;
+  } catch (error) {
+    console.error("Unable to read stored note content", error);
     return "";
   }
+}
 
+async function removeStoredValue(storageKey: string): Promise<void> {
   try {
-    const decompressed = decompressFromUTF16(storedValue);
-    if (decompressed !== null) {
-      return decompressed;
-    }
-  } catch {
-    /* ignore malformed compressed content and fall back to raw value */
+    await storage.removeItem(storageKey);
+  } catch (error) {
+    console.error("Unable to remove stored note content", error);
   }
-
-  return storedValue;
 }
 
 function sanitizeHtml(markup: string): string {
   return DOMPurify.sanitize(markup, { USE_PROFILES: { html: true } });
 }
 
-const NON_TEXT_CONTENT_SELECTOR = "img, video, audio, picture, figure, hr";
+const NON_TEXT_CONTENT_SELECTOR =
+  "img, svg, canvas, video, audio, object, embed, iframe, picture, figure, hr";
 
 function normalizeNoteElement(element: HTMLDivElement): string {
   const ownerDocument = element.ownerDocument ?? document;
@@ -348,8 +367,8 @@ function createNoteSynchronizer(
     }
     lastPersistedValue = normalized;
     const title = deriveTitleFromMarkup(normalized);
-    saveNoteMetadata({ slug, title, updatedAt: Date.now() });
-    writeStoredValue(storageKey, normalized);
+    void saveNoteMetadata({ slug, title, updatedAt: Date.now() });
+    void writeStoredValue(storageKey, normalized);
     if (options.broadcast !== false) {
       channel.postMessage(normalized);
     }
@@ -400,8 +419,8 @@ function createNoteSynchronizer(
     const normalizedEmpty = normalizeNoteElement(element);
     lastKnownDomValue = normalizedEmpty;
     lastPersistedValue = "";
-    deleteNoteMetadata(slug);
-    localStorage.removeItem(storageKey);
+    void deleteNoteMetadata(slug);
+    void removeStoredValue(storageKey);
     if (options.broadcast !== false) {
       channel.postMessage("");
     }
@@ -419,8 +438,9 @@ export function initializeNoteContent(
   const storageKey = getStorageKey();
   const sync = createNoteSynchronizer(element, channel, storageKey);
 
-  const savedValue = readStoredValue(storageKey);
-  sync.apply(savedValue);
+  void readStoredValue(storageKey).then((savedValue) => {
+    sync.apply(savedValue);
+  });
 
   element.addEventListener("input", () => {
     const normalizedHtml = normalizeNoteElement(element);

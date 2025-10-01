@@ -1,5 +1,6 @@
 import { createBottomSheet } from "@plainsheet/core";
 import { NOTE_KEY_PREFIX } from "./constants.ts";
+import storage from "./storage.ts";
 
 type NewNoteSheetElements = {
   form: HTMLFormElement | null;
@@ -61,12 +62,13 @@ const generateRandomSlug = (): string => {
   return slug.slice(0, 9) || Math.random().toString(36).slice(2, 11);
 };
 
-const doesSlugExist = (slug: string): boolean => {
+const doesSlugExist = async (slug: string): Promise<boolean> => {
   try {
     const storageKey = `${NOTE_KEY_PREFIX}${slug}`;
-    return localStorage.getItem(storageKey) !== null;
+    const value = await storage.getItem<string>(storageKey);
+    return value !== null;
   } catch (error) {
-    console.warn("Unable to read localStorage to verify note key", error);
+    console.warn("Unable to read storage to verify note key", error);
     return false;
   }
 };
@@ -179,22 +181,23 @@ export function setupNewNoteSheet(trigger: HTMLButtonElement): boolean {
     bottomSheet.close();
   });
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     hideWarning();
 
     const rawValue = input.value;
-    const slug =
-      slugify(rawValue) ||
-      (() => {
-        for (let attempts = 0; attempts < 5; attempts += 1) {
-          const generated = generateRandomSlug();
-          if (!doesSlugExist(generated)) {
-            return generated;
-          }
+    let slug = slugify(rawValue);
+
+    if (!slug) {
+      for (let attempts = 0; attempts < 5; attempts += 1) {
+        const generated = generateRandomSlug();
+        const exists = await doesSlugExist(generated);
+        if (!exists) {
+          slug = generated;
+          break;
         }
-        return "";
-      })();
+      }
+    }
 
     if (!slug) {
       showWarning("We couldn't generate a note key. Please try again.");
@@ -206,7 +209,7 @@ export function setupNewNoteSheet(trigger: HTMLButtonElement): boolean {
       return;
     }
 
-    if (doesSlugExist(slug)) {
+    if (await doesSlugExist(slug)) {
       showWarning("A note with that key already exists.");
       return;
     }

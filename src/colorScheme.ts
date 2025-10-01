@@ -1,4 +1,5 @@
 import { COLOR_SCHEME_STORAGE_KEY } from "./constants.ts";
+import storage from "./storage.ts";
 
 export type ColorScheme = "light" | "dark";
 export type ColorSchemePreference = ColorScheme | "auto";
@@ -12,19 +13,29 @@ export function getSystemColorScheme(query?: MediaQueryList): ColorScheme {
   return mediaQuery.matches ? "dark" : "light";
 }
 
-function loadStoredColorSchemePreference(): ColorSchemePreference {
-  const stored = localStorage.getItem(COLOR_SCHEME_STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
-    return stored;
+async function loadStoredColorSchemePreference(): Promise<ColorSchemePreference> {
+  try {
+    const stored = await storage.getItem<string>(COLOR_SCHEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+  } catch (error) {
+    console.error("Unable to load stored color scheme", error);
   }
   return "auto";
 }
 
-function persistColorSchemePreference(preference: ColorSchemePreference) {
-  if (preference === "auto") {
-    localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY);
-  } else {
-    localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, preference);
+async function persistColorSchemePreference(
+  preference: ColorSchemePreference
+): Promise<void> {
+  try {
+    if (preference === "auto") {
+      await storage.removeItem(COLOR_SCHEME_STORAGE_KEY);
+    } else {
+      await storage.setItem(COLOR_SCHEME_STORAGE_KEY, preference);
+    }
+  } catch (error) {
+    console.error("Unable to persist color scheme preference", error);
   }
 }
 
@@ -94,9 +105,9 @@ function addMatchMediaChangeListener(
   return () => {};
 }
 
-export function setupColorSchemeManagement(button: HTMLButtonElement | null) {
+export async function setupColorSchemeManagement(button: HTMLButtonElement | null) {
   const systemQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  let preference = loadStoredColorSchemePreference();
+  let preference = await loadStoredColorSchemePreference();
 
   const updateToggleDescription = () => {
     if (!button) return;
@@ -143,7 +154,7 @@ export function setupColorSchemeManagement(button: HTMLButtonElement | null) {
     const systemScheme = getSystemColorScheme(systemQuery);
     preference = getNextColorSchemePreference(preference, systemScheme);
     applyColorSchemePreference(preference);
-    persistColorSchemePreference(preference);
+    void persistColorSchemePreference(preference);
     updateToggleDescription();
   });
 }

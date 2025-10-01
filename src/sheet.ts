@@ -7,6 +7,7 @@ import {
   saveNoteMetadata,
   type NoteMetadata,
 } from "./utils/noteMetadata.ts";
+import storage from "./storage.ts";
 
 type NoteEntry = {
   slug: string;
@@ -118,13 +119,16 @@ export function setupSavedNotesSheet(): void {
   );
 
   let storageReadFailed = false;
+  let renderSequence = 0;
 
-  const collectSlugs = (metadataMap: Record<string, NoteMetadata>) => {
+  const collectSlugs = async (
+    metadataMap: Record<string, NoteMetadata>
+  ): Promise<string[]> => {
     storageReadFailed = false;
     const slugs = new Set<string>(Object.keys(metadataMap));
     try {
-      for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index);
+      const keys = await storage.keys();
+      for (const key of keys) {
         if (!key || key === NOTE_INDEX_STORAGE_KEY) {
           continue;
         }
@@ -136,7 +140,7 @@ export function setupSavedNotesSheet(): void {
         }
       }
     } catch (error) {
-      console.error("Unable to read saved notes from localStorage", error);
+      console.error("Unable to read saved notes from storage", error);
       storageReadFailed = true;
     }
     return Array.from(slugs).sort((a, b) => {
@@ -146,54 +150,69 @@ export function setupSavedNotesSheet(): void {
     });
   };
 
-  const buildEntries = (): NoteEntry[] => {
+  const buildEntries = async (): Promise<NoteEntry[]> => {
     const activeSlug = getActiveSlug();
-    const metadataMap = loadNoteMetadataMap();
-    const slugs = collectSlugs(metadataMap);
+    const metadataMap = await loadNoteMetadataMap();
+    const slugs = await collectSlugs(metadataMap);
     if (storageReadFailed) {
       return [];
     }
-    return slugs.map((slug) => {
-      const storageKey = `${NOTE_KEY_PREFIX}${slug}`;
-      const metadata = metadataMap[slug];
-      let title = metadata?.title;
+    const entries = await Promise.all(
+      slugs.map(async (slug) => {
+        const storageKey = `${NOTE_KEY_PREFIX}${slug}`;
+        const metadata = metadataMap[slug];
+        let title = metadata?.title;
 
-      if (!title) {
-        const storedValueRaw = localStorage.getItem(storageKey);
-        const storedValue = decodeStoredValue(storedValueRaw);
-        const plainText = toPlainText(storedValue);
-        const [firstLine] = plainText.split(/\n+/).map((line) => line.trim());
-        title =
-          firstLine ||
-          (slug === "root" ? "Root note" : slug.replace(/[_-]/g, " "));
+        if (!title) {
+          const storedValueRaw = await storage.getItem<string>(storageKey);
+          if (storedValueRaw !== null) {
+            const storedValue = decodeStoredValue(storedValueRaw);
+            const plainText = toPlainText(storedValue);
+            const [firstLine] = plainText
+              .split(/\n+/)
+              .map((line) => line.trim());
+            title =
+              firstLine ||
+              (slug === "root" ? "Root note" : slug.replace(/[_-]/g, " "));
 
-        if (storedValueRaw !== null) {
-          saveNoteMetadata({
-            slug,
-            title,
-            updatedAt: metadata?.updatedAt ?? Date.now(),
-          });
+            void saveNoteMetadata({
+              slug,
+              title,
+              updatedAt: metadata?.updatedAt ?? Date.now(),
+            });
+          } else {
+            title = slug === "root" ? "Root note" : slug.replace(/[_-]/g, " ");
+          }
         }
-      }
 
-      const pathSegment = slug === "root" ? "" : slug;
-      const encodedSegment = pathSegment ? encodeURIComponent(pathSegment) : "";
-      const url = encodedSegment
-        ? `${window.location.origin}/${encodedSegment}`
-        : `${window.location.origin}/`;
-      return {
-        slug,
-        title,
-        url,
-        isActive: slug === activeSlug,
-      };
-    });
+        const pathSegment = slug === "root" ? "" : slug;
+        const encodedSegment = pathSegment ? encodeURIComponent(pathSegment) : "";
+        const url = encodedSegment
+          ? `${window.location.origin}/${encodedSegment}`
+          : `${window.location.origin}/`;
+        return {
+          slug,
+          title,
+          url,
+          isActive: slug === activeSlug,
+        };
+      })
+    );
+    return entries;
   };
 
-  const renderSavedNotes = () => {
+  const renderSavedNotes = async () => {
+    const renderId = ++renderSequence;
+    listContainer.innerHTML =
+      '<div class="note-sheet-empty"><p>Loading…</p></div>';
+
+    const entries = await buildEntries();
+    if (renderId !== renderSequence) {
+      return;
+    }
+
     listContainer.innerHTML = "";
 
-    const entries = buildEntries();
     if (storageReadFailed) {
       const errorState = document.createElement("div");
       errorState.className = "note-sheet-empty";
@@ -270,14 +289,14 @@ export function setupSavedNotesSheet(): void {
   }
 
   searchInput?.addEventListener("input", () => {
-    renderSavedNotes();
+    void renderSavedNotes();
   });
 
   trigger.addEventListener("click", () => {
     if (searchInput) {
       searchInput.value = "";
     }
-    renderSavedNotes();
+    void renderSavedNotes();
     bottomSheet.open();
     if (isMobileDevice()) {
       return;
@@ -299,7 +318,7 @@ export function setupSavedNotesSheet(): void {
       if (searchInput) {
         searchInput.value = "";
       }
-      renderSavedNotes();
+      void renderSavedNotes();
       bottomSheet.open();
       window.setTimeout(() => {
         searchInput?.focus({ preventScroll: true });
