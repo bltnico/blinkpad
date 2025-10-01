@@ -5,7 +5,7 @@
 
 .note-sheet-backdrop {
   background: var(--sheet-backdrop-color) !important;
-  backdrop-filter: blur(20px);
+  backdrop-filter: grayscale(1) blur(10px);
 }
 
 .note-sheet-container {
@@ -197,6 +197,10 @@
   .note-sheet__header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .note-sheet__title {
+    display: none;
   }
 
   .note-sheet__close {

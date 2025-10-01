@@ -11,7 +11,9 @@ export function isMobileDevice(): boolean {
   }
 
   const userAgent = navigator.userAgent || "";
-  return /Android|iPhone|iPad|iPod|IEMobile|BlackBerry|Opera Mini/i.test(userAgent);
+  return /Android|iPhone|iPad|iPod|IEMobile|BlackBerry|Opera Mini/i.test(
+    userAgent
+  );
 }
 
 export {};

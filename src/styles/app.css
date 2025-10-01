@@ -58,7 +58,7 @@
   --sheet-card-border: rgba(0, 0, 0, 0.08);
   --sheet-card-hover-bg: rgba(33, 53, 71, 0.08);
   --sheet-card-active-bg: rgba(240, 211, 88, 0.24);
-  --sheet-text-muted: rgba(33, 53, 71, 0.68);
+  --sheet-text-muted: rgba(3, 3, 3, 0.68);
   color-scheme: light;
 }
 

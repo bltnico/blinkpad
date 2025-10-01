@@ -1,6 +1,7 @@
 import { createBottomSheet } from "@plainsheet/core";
 import { decompressFromUTF16 } from "lz-string";
 import { NOTE_KEY_PREFIX } from "./constants.ts";
+import { isMobileDevice } from "./utils/device.ts";
 
 type NoteEntry = {
   slug: string;
@@ -245,6 +246,10 @@ export function setupSavedNotesSheet(): void {
     }
     renderSavedNotes();
     bottomSheet.open();
+    if (isMobileDevice()) {
+      return;
+    }
+
     window.setTimeout(() => {
       searchInput?.focus({ preventScroll: true });
     }, 120);
