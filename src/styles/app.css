@@ -110,7 +110,7 @@ body {
   min-height: 1.5rem;
 }
 
-[contenteditable] b {
+[contenteditable] b:not(:has(> br)) {
   background-color: #f0d358;
   color: var(--bold-text-color);
   border-radius: 0.5rem;
@@ -118,7 +118,7 @@ body {
 }
 
 [contenteditable] i {
-  opacity: 0.9;
+  opacity: 0.7;
 }
 
 [contenteditable] img {

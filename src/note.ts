@@ -5,10 +5,7 @@ import {
   NOTE_KEY_PREFIX,
   DEFAULT_STORAGE_KEY,
 } from "./constants.ts";
-import {
-  deleteNoteMetadata,
-  saveNoteMetadata,
-} from "./utils/noteMetadata.ts";
+import { deleteNoteMetadata, saveNoteMetadata } from "./utils/noteMetadata.ts";
 
 type DebouncedFunction<T extends (...args: any[]) => void> = ((
   ...args: Parameters<T>
@@ -46,12 +43,20 @@ function sanitizeHtml(markup: string): string {
   return DOMPurify.sanitize(markup, { USE_PROFILES: { html: true } });
 }
 
+const NON_TEXT_CONTENT_SELECTOR = "img, video, audio, picture, figure, hr";
+
 function normalizeNoteElement(element: HTMLDivElement): string {
   const ownerDocument = element.ownerDocument ?? document;
   const textContent = element.textContent ?? "";
   const trimmedText = textContent.replace(/\u200b/gi, "").trim();
 
+  let hasNonTextContent = false;
   if (!trimmedText) {
+    hasNonTextContent =
+      element.querySelector(NON_TEXT_CONTENT_SELECTOR) !== null;
+  }
+
+  if (!trimmedText && !hasNonTextContent) {
     if (element.innerHTML !== "<div><br></div>") {
       element.innerHTML = "<div><br></div>";
     }
@@ -91,7 +96,10 @@ function updateDocumentTitles(sourceElement: HTMLDivElement) {
 
 type IdleCallbackHandle = number;
 
-type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining(): number }) => void;
+type IdleCallback = (deadline: {
+  didTimeout: boolean;
+  timeRemaining(): number;
+}) => void;
 
 type IdleRequestOptions = {
   timeout?: number;
@@ -141,10 +149,7 @@ function getSlugFromStorageKey(storageKey: string): string {
   return "root";
 }
 
-function normalizeMarkup(
-  markup: string,
-  ownerDocument: Document
-): string {
+function normalizeMarkup(markup: string, ownerDocument: Document): string {
   const container = ownerDocument.createElement("div");
   container.innerHTML = markup;
   return normalizeNoteElement(container as HTMLDivElement);
@@ -289,10 +294,13 @@ function createNoteSynchronizer(
       if (idleHandle !== null) {
         cancelIdleCallbackCompat(idleHandle);
       }
-      idleHandle = requestIdleCallbackCompat(() => {
-        idleHandle = null;
-        run();
-      }, { timeout: 500 });
+      idleHandle = requestIdleCallbackCompat(
+        () => {
+          idleHandle = null;
+          run();
+        },
+        { timeout: 500 }
+      );
     };
 
     const schedule = ((immediate?: boolean) => {
