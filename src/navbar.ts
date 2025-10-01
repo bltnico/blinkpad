@@ -42,7 +42,7 @@ function setupPopOutButton(context: NotePlacement) {
   if (!popOutTrigger) return;
 
   if (isMobileDevice()) {
-    popOutTrigger.hidden = true;
+    popOutTrigger.style.display = "none";
     return;
   }
 
