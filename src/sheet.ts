@@ -43,9 +43,18 @@ const decodeStoredValue = (rawValue: string | null) => {
 };
 
 const toPlainText = (html: string) => {
-  if (!html) return "";
+  if (!html) {
+    return "";
+  }
+
   const fragment = document.createElement("div");
   fragment.innerHTML = html;
+  const firstChild = fragment.firstChild;
+
+  if (firstChild) {
+    return firstChild.textContent ?? "";
+  }
+
   const text = fragment.textContent ?? "";
   return text.replace(/\r?\n/g, "\n").trim();
 };

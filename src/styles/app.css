@@ -21,6 +21,7 @@
   color-scheme: light dark;
   color: var(--text-color);
   background-color: var(--background-color);
+  transition: background-color, color 200ms ease-in;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
