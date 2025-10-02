@@ -1,10 +1,10 @@
-# Draft Note
+# Blinkpad
 
-Draft Note is a zero-friction, browser-native scratchpad for ideas that refuse to wait.
+Blinkpad is a zero-friction, browser-native scratchpad for ideas that refuse to wait.
 Keep it docked in the main window or float it on a second screen—every word stays in sync.
 
 <p align="center">
-  <a href="https://draftnote.netlify.app" target="_blank"><b>▶ Try the Live Demo</b></a>
+  <a href="https://blinkpad.netlify.app" target="_blank"><b>▶ Try the Live Demo</b></a>
 </p>
 
 ## Feature Highlights ✨
@@ -27,9 +27,9 @@ Keep it docked in the main window or float it on a second screen—every word st
 - Use short titles at the top of notes, it makes searching faster.
 - Export a PNG of your note to drop it into a slide deck.
 
-### Install Draft Note like an app
+### Install Blinkpad like an app
 
-Draft Note works great as a pinned tab. If you prefer a native feel, install it from your browser.
+Blinkpad works great as a pinned tab. If you prefer a native feel, install it from your browser.
 
 - macOS, Chrome, three dot menu, Save and share, Create shortcut.
 - iOS and iPadOS, Safari, Share, Add to Home Screen.
@@ -79,7 +79,7 @@ npm run preview
 
 ## Contributing
 
-Have an idea, edge case, or design tweak for Draft Note?
+Have an idea, edge case, or design tweak for Blinkpad?
 Open an issue, start a discussion, or ship a pull request—everything from copy polish to PiP enhancements is welcome.
 
 ## License
