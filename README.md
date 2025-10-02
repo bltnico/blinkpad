@@ -3,6 +3,8 @@
 Blinkpad is a zero-friction, browser-native scratchpad for ideas that refuse to wait.
 Keep it docked in the main window or float it on a second screen—every word stays in sync.
 
+![Blinkpad](public/screenshot.jpg "Blinkpad")
+
 <p align="center">
   <a href="https://blinkpad.netlify.app" target="_blank"><b>▶ Try the Live Demo</b></a>
 </p>
