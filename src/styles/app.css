@@ -125,6 +125,13 @@ body {
   text-decoration-color: #f0d358;
 }
 
+[contenteditable] a {
+  padding: 0;
+  color: inherit;
+  font-weight: 500;
+  text-decoration: #f0d358 underline;
+}
+
 [contenteditable] img {
   max-width: 100%;
   height: auto;
