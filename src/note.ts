@@ -18,7 +18,10 @@ function getStorageKey(): string {
   return scope ? `${NOTE_KEY_PREFIX}${scope}` : DEFAULT_STORAGE_KEY;
 }
 
-async function writeStoredValue(storageKey: string, value: string): Promise<void> {
+async function writeStoredValue(
+  storageKey: string,
+  value: string
+): Promise<void> {
   try {
     await storage.setItem(storageKey, compressToUTF16(value));
   } catch (error) {
@@ -58,7 +61,67 @@ async function removeStoredValue(storageKey: string): Promise<void> {
 }
 
 function sanitizeHtml(markup: string): string {
-  return DOMPurify.sanitize(markup, { USE_PROFILES: { html: true } });
+  return DOMPurify.sanitize(markup, {
+    USE_PROFILES: { html: true },
+    ADD_ATTR: ["contenteditable", "target"],
+  });
+}
+
+function tryHandleUrlPaste(
+  element: HTMLDivElement,
+  event: ClipboardEvent
+): boolean {
+  const pastedText = event.clipboardData?.getData("text/plain")?.trim();
+  if (!pastedText || !/^https?:\/\/\S+$/i.test(pastedText)) {
+    return false;
+  }
+
+  event.preventDefault();
+
+  const doc = element.ownerDocument ?? document;
+  const pastedUrl = new URL(pastedText);
+  const isInternalLink = window.location.origin === pastedUrl.origin;
+
+  const link = doc.createElement("a");
+  link.href = pastedText;
+  link.target = isInternalLink ? "_self" : "_blank";
+  link.textContent = isInternalLink
+    ? `Note @${pastedUrl.pathname.slice(1)}`
+    : pastedText;
+  link.setAttribute("contenteditable", "false");
+
+  const linkBlock = doc.createElement("div");
+  linkBlock.appendChild(link);
+
+  const emptyBlock = doc.createElement("div");
+  emptyBlock.appendChild(doc.createElement("br"));
+
+  const fragment = doc.createDocumentFragment();
+  fragment.append(linkBlock, emptyBlock);
+
+  const selection = doc.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(fragment);
+
+    const parentBlock = linkBlock.parentElement;
+    if (parentBlock && parentBlock !== element) {
+      parentBlock.after(linkBlock, emptyBlock);
+    }
+  } else {
+    element.appendChild(fragment);
+  }
+
+  const caretRange = doc.createRange();
+  caretRange.setStart(emptyBlock, 0);
+  caretRange.collapse(true);
+
+  const activeSelection = doc.getSelection();
+  activeSelection?.removeAllRanges();
+  activeSelection?.addRange(caretRange);
+
+  return true;
 }
 
 const NON_TEXT_CONTENT_SELECTOR =
@@ -370,7 +433,9 @@ function createNoteSynchronizer(
     const normalized = normalizeMarkup(sanitized, ownerDocument);
     const summaryElement = ownerDocument.createElement("div");
     summaryElement.innerHTML = normalized;
-    const summaryText = summaryElement.textContent?.replace(/\u200b/gi, "").trim();
+    const summaryText = summaryElement.textContent
+      ?.replace(/\u200b/gi, "")
+      .trim();
     const hasContent = Boolean(summaryText);
     const hasNonTextContent =
       summaryElement.querySelector(NON_TEXT_CONTENT_SELECTOR) !== null;
@@ -462,6 +527,13 @@ export function initializeNoteContent(
 
   void readStoredValue(storageKey).then((savedValue) => {
     sync.apply(savedValue);
+  });
+
+  element.addEventListener("paste", (event: ClipboardEvent) => {
+    if (!tryHandleUrlPaste(element, event)) {
+      return;
+    }
+    element.dispatchEvent(new Event("input", { bubbles: true }));
   });
 
   element.addEventListener("input", () => {
