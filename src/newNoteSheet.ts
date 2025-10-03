@@ -162,15 +162,46 @@ export function setupNewNoteSheet(trigger: HTMLButtonElement): boolean {
     }, 120);
   };
 
+  const openSheet = () => {
+    resetForm();
+    bottomSheet.open();
+    focusInput();
+  };
+
+  const isNewNoteShortcut = (event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.isComposing || event.repeat) {
+      return false;
+    }
+    if (event.altKey || event.shiftKey) {
+      return false;
+    }
+    const key = event.key?.toLowerCase();
+    if (key !== "j") {
+      return false;
+    }
+    return event.metaKey || event.ctrlKey;
+  };
+
+  const handleNewNoteShortcut = (event: KeyboardEvent) => {
+    if (!isNewNoteShortcut(event)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openSheet();
+  };
+
   const navigateToSlug = (slug: string) => {
     const targetUrl = buildTargetUrl(slug);
     window.location.assign(targetUrl);
   };
 
   trigger.addEventListener("click", () => {
-    resetForm();
-    bottomSheet.open();
-    focusInput();
+    openSheet();
+  });
+
+  window.addEventListener("keydown", handleNewNoteShortcut, {
+    capture: true,
   });
 
   closeButton?.addEventListener("click", () => {
