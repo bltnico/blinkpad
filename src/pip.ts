@@ -131,13 +131,12 @@ export async function openPiPWindow(context: NotePlacement): Promise<void> {
 
   const initialise = () => setupPiPWindow(targetWindow, context);
 
-  if (
-    targetWindow.document?.readyState === "complete" ||
-    targetWindow.document?.readyState === "interactive"
-  ) {
+  if (targetWindow.document?.readyState !== "loading") {
     initialise();
   } else {
-    targetWindow.addEventListener("load", initialise, { once: true });
+    targetWindow.addEventListener("load", initialise, {
+      once: true,
+    });
   }
 
   attachPiPLifecycle(targetWindow, () => {
