@@ -18,10 +18,14 @@ Keep it docked in the main window or float it on a second screen—every word st
 - Easy share and export, use the system share sheet, copy as HTML, or export a crisp PNG.
 - 100% local and private, nothing leaves your device.
 
-### Shortcuts
+### Shortcuts ⌨️
 
+- Open the new note form Cmd or Ctrl + J
 - Open the note switcher Cmd or Ctrl + K
 - Open the floating mini window Cmd or Ctrl + P
+- Highlight text Cmd or Ctrl + B
+- Italic text Cmd or Ctrl + I
+- Wavy text Cmd or Ctrl + U
 
 ### Pro tips
 
