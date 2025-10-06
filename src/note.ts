@@ -67,6 +67,104 @@ function sanitizeHtml(markup: string): string {
   });
 }
 
+function looksLikeHtml(markup: string): boolean {
+  const trimmed = markup.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  if (/^<!DOCTYPE[\s\S]*>/i.test(trimmed)) {
+    return true;
+  }
+
+  if (/^<(html|body)\b/i.test(trimmed)) {
+    return true;
+  }
+
+  return /<([a-z][\w-]*)([^>]*)>/i.test(trimmed);
+}
+
+function tryHandleHtmlPaste(
+  element: HTMLDivElement,
+  event: ClipboardEvent
+): boolean {
+  const clipboardData = event.clipboardData;
+  if (!clipboardData) {
+    return false;
+  }
+
+  const clipboardHtml = clipboardData.getData("text/html");
+  const clipboardText = clipboardData.getData("text/plain");
+
+  let candidateMarkup: string | null = null;
+
+  if (clipboardHtml && looksLikeHtml(clipboardHtml)) {
+    candidateMarkup = clipboardHtml;
+  } else if (clipboardText && looksLikeHtml(clipboardText)) {
+    candidateMarkup = clipboardText;
+  }
+
+  if (!candidateMarkup) {
+    return false;
+  }
+
+  const sanitizedMarkup = sanitizeHtml(candidateMarkup);
+
+  const ownerDocument = element.ownerDocument ?? document;
+  const template = ownerDocument.createElement("template");
+  template.innerHTML = sanitizedMarkup;
+
+  const sourceRoot = template.content.querySelector("body") ?? template.content;
+
+  if (!sourceRoot.childNodes.length) {
+    return false;
+  }
+
+  event.preventDefault();
+
+  const selection = ownerDocument.getSelection();
+  let range: Range | null = null;
+  if (selection && selection.rangeCount > 0) {
+    const candidateRange = selection.getRangeAt(0);
+    const commonAncestor = candidateRange.commonAncestorContainer;
+    if (element === commonAncestor || element.contains(commonAncestor)) {
+      range = candidateRange;
+    }
+  }
+
+  if (!range) {
+    range = ownerDocument.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+  }
+
+  const fragment = ownerDocument.createDocumentFragment();
+  const insertedNodes: ChildNode[] = [];
+  while (sourceRoot.firstChild) {
+    const node = sourceRoot.firstChild;
+    insertedNodes.push(node);
+    fragment.appendChild(node);
+  }
+
+  range.deleteContents();
+  range.insertNode(fragment);
+
+  const caretTarget = [...insertedNodes]
+    .reverse()
+    .find((node) =>
+      node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE
+    );
+  if (caretTarget) {
+    range.setStartAfter(caretTarget);
+    range.collapse(true);
+    const activeSelection = ownerDocument.getSelection();
+    activeSelection?.removeAllRanges();
+    activeSelection?.addRange(range);
+  }
+
+  return true;
+}
+
 function tryHandleUrlPaste(
   element: HTMLDivElement,
   event: ClipboardEvent
@@ -530,10 +628,13 @@ export function initializeNoteContent(
   });
 
   element.addEventListener("paste", (event: ClipboardEvent) => {
-    if (!tryHandleUrlPaste(element, event)) {
+    if (tryHandleHtmlPaste(element, event)) {
+      element.dispatchEvent(new Event("input", { bubbles: true }));
       return;
     }
-    element.dispatchEvent(new Event("input", { bubbles: true }));
+    if (tryHandleUrlPaste(element, event)) {
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    }
   });
 
   element.addEventListener("input", () => {
