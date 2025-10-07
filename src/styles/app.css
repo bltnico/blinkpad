@@ -2,6 +2,8 @@
   --background-color: #000;
   --text-color: #fff;
   --bold-text-color: #000;
+  --bold-background-color: #fff;
+  --anchor-text-color: #f0d358;
   --nav-panel-bg: rgba(255, 255, 255, 0.2);
   --nav-panel-border: rgba(255, 255, 255, 0.3);
   --nav-button-bg: rgba(0, 0, 0, 0.5);
@@ -33,6 +35,8 @@
   --background-color: #000;
   --text-color: #fff;
   --bold-text-color: #000;
+  --bold-background-color: #fff;
+  --anchor-text-color: #f0d358;
   --nav-panel-bg: rgba(255, 255, 255, 0.2);
   --nav-panel-border: rgba(255, 255, 255, 0.3);
   --nav-button-bg: rgba(0, 0, 0, 0.5);
@@ -50,6 +54,8 @@
   --background-color: #ffffff;
   --text-color: #213547;
   --bold-text-color: #ffffff;
+  --bold-background-color: #213547;
+  --anchor-text-color: #baa653;
   --nav-panel-bg: rgba(0, 0, 0, 0.2);
   --nav-panel-border: rgba(0, 0, 0, 0.05);
   --nav-button-bg: rgba(255, 255, 255, 0.6);
@@ -111,7 +117,7 @@ body {
 }
 
 [contenteditable] b:not(:has(> br)) {
-  background-color: #f0d358;
+  background-color: var(--bold-background-color);
   color: var(--bold-text-color);
   padding: 0.1rem;
 }
@@ -129,7 +135,12 @@ body {
   padding: 0;
   color: inherit;
   font-weight: 500;
-  text-decoration: #f0d358 underline;
+  color: var(--anchor-text-color);
+  text-decoration: none;
+}
+
+[contenteditable] a:hover {
+  text-decoration: underline;
 }
 
 [contenteditable] img {
@@ -205,6 +216,8 @@ nav > div button:hover {
     --background-color: #ffffff;
     --text-color: #213547;
     --bold-text-color: #ffffff;
+    --bold-background-color: #213547;
+    --anchor-text-color: #baa653;
     --nav-panel-bg: rgba(0, 0, 0, 0.2);
     --nav-panel-border: rgba(0, 0, 0, 0.05);
     --nav-button-bg: rgba(255, 255, 255, 0.6);
