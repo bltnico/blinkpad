@@ -455,6 +455,7 @@ export type NoteSync = {
   queue(value: string): void;
   commit(value: string, options?: { broadcast?: boolean }): string;
   clear(options?: { broadcast?: boolean }): void;
+  refreshFromStorage(): Promise<string>;
 };
 
 function createNoteSynchronizer(
@@ -612,7 +613,26 @@ function createNoteSynchronizer(
     scheduleDocumentTitleUpdate.flush();
   };
 
-  return { apply, queue, commit, clear };
+  const refreshFromStorage = async (): Promise<string> => {
+    try {
+      const storedValue = await readStoredValue(storageKey);
+
+      if (storedValue === lastKnownDomValue) {
+        return lastKnownDomValue;
+      }
+
+      if (storedValue === lastPersistedValue) {
+        return lastKnownDomValue;
+      }
+
+      return apply(storedValue);
+    } catch (error) {
+      console.error("Unable to refresh note content from storage", error);
+      return lastKnownDomValue;
+    }
+  };
+
+  return { apply, queue, commit, clear, refreshFromStorage };
 }
 
 export function initializeNoteContent(
@@ -650,6 +670,35 @@ export function initializeNoteContent(
     const activeElement = element.ownerDocument?.activeElement;
     if (activeElement !== element) {
       sync.apply(value);
+    }
+  });
+
+  const isNoteInPrimaryDocument = () => {
+    if (context.placeholder.isConnected) {
+      return false;
+    }
+    return element.ownerDocument === document;
+  };
+
+  let refreshInFlight = false;
+
+  const requestRefreshFromStorage = () => {
+    if (!isNoteInPrimaryDocument()) {
+      return;
+    }
+    if (refreshInFlight) {
+      return;
+    }
+    refreshInFlight = true;
+    void sync.refreshFromStorage().finally(() => {
+      refreshInFlight = false;
+    });
+  };
+
+  window.addEventListener("focus", requestRefreshFromStorage);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      requestRefreshFromStorage();
     }
   });
 
