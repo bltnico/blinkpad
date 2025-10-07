@@ -69,6 +69,11 @@
   color-scheme: light;
 }
 
+html,
+body {
+  background-color: var(--background-color);
+}
+
 body {
   position: relative;
   margin: 0;
