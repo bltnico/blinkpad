@@ -304,6 +304,7 @@ export function setupSavedNotesSheet(): void {
       if (entry.slug !== "root") {
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
+        deleteButton.tabIndex = -1;
         deleteButton.className = "note-card__trash";
         deleteButton.setAttribute(
           "aria-label",
