@@ -151,8 +151,9 @@ function tryHandleHtmlPaste(
 
   const caretTarget = [...insertedNodes]
     .reverse()
-    .find((node) =>
-      node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE
+    .find(
+      (node) =>
+        node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE
     );
   if (caretTarget) {
     range.setStartAfter(caretTarget);
@@ -322,9 +323,12 @@ function deriveTitleFromMarkup(markup: string): string {
   }
   const scratch = document.createElement("div");
   scratch.innerHTML = markup;
+  const firstLine = scratch.firstChild?.textContent;
+  scratch.firstChild?.remove();
   const textContent = scratch.textContent ?? "";
-  const firstLine = textContent.split(/\r?\n/)[0]?.trim() ?? "";
-  return firstLine || "Note";
+  const content = textContent.split(/\r?\n/)[0]?.trim() ?? "";
+  const title = `${firstLine} ${content}`;
+  return title || "Note";
 }
 
 function getSlugFromStorageKey(storageKey: string): string {
