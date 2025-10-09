@@ -3,6 +3,7 @@ import { decompressFromUTF16 } from "lz-string";
 import { NOTE_KEY_PREFIX, NOTE_INDEX_STORAGE_KEY } from "./constants.ts";
 import { isMobileDevice } from "./utils/device.ts";
 import {
+  deleteNoteMetadata,
   loadNoteMetadataMap,
   saveNoteMetadata,
   type NoteMetadata,
@@ -121,6 +122,31 @@ export function setupSavedNotesSheet(): void {
   let storageReadFailed = false;
   let renderSequence = 0;
 
+  const deleteNote = async (slug: string): Promise<boolean> => {
+    if (slug === "root") {
+      return false;
+    }
+
+    const storageKey = `${NOTE_KEY_PREFIX}${slug}`;
+    let hadSuccess = false;
+
+    try {
+      await storage.removeItem(storageKey);
+      hadSuccess = true;
+    } catch (error) {
+      console.error(`Unable to remove stored note "${slug}"`, error);
+    }
+
+    try {
+      await deleteNoteMetadata(slug);
+      hadSuccess = true;
+    } catch (error) {
+      console.error(`Unable to remove note metadata for "${slug}"`, error);
+    }
+
+    return hadSuccess;
+  };
+
   const collectSlugs = async (
     metadataMap: Record<string, NoteMetadata>
   ): Promise<string[]> => {
@@ -186,7 +212,9 @@ export function setupSavedNotesSheet(): void {
         }
 
         const pathSegment = slug === "root" ? "" : slug;
-        const encodedSegment = pathSegment ? encodeURIComponent(pathSegment) : "";
+        const encodedSegment = pathSegment
+          ? encodeURIComponent(pathSegment)
+          : "";
         const url = encodedSegment
           ? `${window.location.origin}/${encodedSegment}`
           : `${window.location.origin}/`;
@@ -254,8 +282,11 @@ export function setupSavedNotesSheet(): void {
       const item = document.createElement("li");
       item.className = "note-sheet-grid__item";
 
+      const card = document.createElement("div");
+      card.className = "note-card";
+
       const anchor = document.createElement("a");
-      anchor.className = "note-card";
+      anchor.className = "note-card__link";
       anchor.href = entry.url;
 
       const title = document.createElement("span");
@@ -264,12 +295,48 @@ export function setupSavedNotesSheet(): void {
 
       const meta = document.createElement("span");
       meta.className = "note-card__meta";
-      meta.textContent =
-        entry.slug === "root" ? "default workspace" : `/${entry.slug}`;
+      meta.textContent = entry.slug === "root" ? "default" : `/${entry.slug}`;
 
       anchor.appendChild(title);
       anchor.appendChild(meta);
-      item.appendChild(anchor);
+      card.appendChild(anchor);
+
+      if (entry.slug !== "root") {
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "note-card__trash";
+        deleteButton.setAttribute(
+          "aria-label",
+          `Delete note ${entry.title || entry.slug}`
+        );
+        deleteButton.title = `Delete ${entry.title || entry.slug}`;
+        deleteButton.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="note-card__trash-icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>';
+        deleteButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (deleteButton.disabled) {
+            return;
+          }
+          deleteButton.disabled = true;
+          void (async () => {
+            const deleted = await deleteNote(entry.slug);
+            if (!deleted) {
+              deleteButton.disabled = false;
+              return;
+            }
+            if (entry.isActive) {
+              bottomSheet.close();
+              window.location.assign("/");
+              return;
+            }
+            void renderSavedNotes();
+          })();
+        });
+        card.appendChild(deleteButton);
+      }
+
+      item.appendChild(card);
 
       if (entry.isActive) {
         item.classList.add("is-active");
