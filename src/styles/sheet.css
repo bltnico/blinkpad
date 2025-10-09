@@ -234,21 +234,76 @@
 }
 
 .note-card {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.9rem 1rem;
+  position: relative;
   border-radius: 18px;
   background: var(--sheet-card-bg);
   border: 1px solid var(--sheet-card-border);
   color: inherit;
-  text-decoration: none;
   transition: transform 180ms ease, background-color 180ms ease;
 }
 
+.note-card__link {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem;
+  padding-right: 3rem;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
 .note-card:hover,
-.note-card:focus-visible {
+.note-card:focus-within {
   transform: translateY(-2px);
   background: var(--sheet-card-hover-bg);
+}
+
+.note-card__link:focus-visible {
+  outline: none;
+}
+
+.note-card__trash {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sheet-text-muted);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: background-color 180ms ease, color 180ms ease,
+    border-color 180ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.note-card:hover .note-card__trash,
+.note-card:focus-within .note-card__trash,
+.note-card__trash:focus-visible {
+  opacity: 1;
+}
+
+.note-card__trash:hover,
+.note-card__trash:focus-visible {
+  outline: none;
+  background: var(--sheet-card-hover-bg);
+  color: var(--text-color);
+  border-color: var(--sheet-card-border);
+  transform: translateY(-1px);
+}
+
+.note-card__trash:disabled {
+  opacity: 0.35;
+  cursor: progress;
+}
+
+.note-card__trash-icon {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .note-card__title {
