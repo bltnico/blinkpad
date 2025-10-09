@@ -1,4 +1,5 @@
-# Blinkpad
+# Blinkpad 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/f71cb9e1-f0c1-4681-8835-69a6e155cef0/deploy-status)](https://app.netlify.com/projects/blinkpad/deploys)
 
 Blinkpad is a zero-friction, browser-native scratchpad for ideas that refuse to wait.
 Keep it docked in the main window or float it on a second screen—every word stays in sync.
