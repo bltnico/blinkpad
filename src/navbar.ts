@@ -2,9 +2,15 @@ import { exportNoteAsImage } from "./imageExport.ts";
 import { openPiPWindow } from "./pip.ts";
 import { setupColorSchemeManagement } from "./colorScheme.ts";
 import { POP_OUT_BUTTON_ID, COLOR_SCHEME_BUTTON_ID } from "./constants.ts";
-import { restoreNote, type NotePlacement, type NoteSync } from "./note.ts";
+import {
+  getNormalizedNoteMarkup,
+  restoreNote,
+  type NotePlacement,
+  type NoteSync,
+} from "./note.ts";
 import { isMobileDevice } from "./utils/device.ts";
 import { setupNewNoteSheet } from "./newNoteSheet.ts";
+import { createShareLink } from "./share.ts";
 
 type NavbarOptions = {
   context: NotePlacement;
@@ -90,6 +96,53 @@ function setupNewNoteButton(noteElement: HTMLDivElement, noteSync: NoteSync) {
   });
 }
 
+function restoreShareLabel(button: HTMLButtonElement, label: string) {
+  window.setTimeout(() => {
+    button.setAttribute("aria-label", label);
+  }, 1800);
+}
+
+async function copyShareUrlToClipboard(
+  shareUrl: string,
+  trigger: HTMLButtonElement
+) {
+  const originalLabel = trigger.getAttribute("aria-label") ?? "Share";
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    trigger.setAttribute("aria-label", "Share link copied!");
+    restoreShareLabel(trigger, originalLabel);
+  } catch {
+    window.prompt(
+      "Copy this link and open it on your other device:",
+      shareUrl
+    );
+    trigger.setAttribute("aria-label", originalLabel);
+  }
+}
+
+async function tryNativeShare(
+  noteElement: HTMLDivElement,
+  shareUrl: string
+): Promise<boolean> {
+  if (!navigator.share) {
+    return false;
+  }
+  try {
+    await navigator.share({
+      title: document.title || "Note",
+      text: noteElement.innerText.trim(),
+      url: shareUrl,
+    });
+    return true;
+  } catch (error) {
+    if ((error as DOMException)?.name === "AbortError") {
+      return true;
+    }
+    console.warn("Native share failed", error);
+    return false;
+  }
+}
+
 function setupShareButton(noteElement: HTMLDivElement) {
   const shareNoteTrigger = getButtonById("share", {
     missing: "#share button is missing; share action unavailable.",
@@ -98,12 +151,30 @@ function setupShareButton(noteElement: HTMLDivElement) {
   if (!shareNoteTrigger) return;
 
   shareNoteTrigger.addEventListener("click", () => {
-    try {
-      navigator.share?.({
-        title: document.title || "Note",
-        text: noteElement.outerText,
-      });
-    } catch {}
+    if (shareNoteTrigger.disabled) {
+      return;
+    }
+    shareNoteTrigger.disabled = true;
+    const originalLabel = shareNoteTrigger.getAttribute("aria-label") ?? "Share";
+    void (async () => {
+      try {
+        const markup = getNormalizedNoteMarkup(noteElement);
+        const { url: shareUrl } = await createShareLink(markup);
+        const usedNativeShare = await tryNativeShare(noteElement, shareUrl);
+        if (usedNativeShare) {
+          return;
+        }
+        await copyShareUrlToClipboard(shareUrl, shareNoteTrigger);
+      } catch (error) {
+        console.error("Unable to share note", error);
+        const message =
+          error instanceof Error ? error.message : "Unknown error.";
+        window.alert(`Unable to share note: ${message}`);
+        shareNoteTrigger.setAttribute("aria-label", originalLabel);
+      } finally {
+        shareNoteTrigger.disabled = false;
+      }
+    })();
   });
 }
 
