@@ -22,7 +22,6 @@
     "@upstash/ratelimit": "^1.2.0",
     "@upstash/redis": "^1.34.3",
     "dompurify": "3.2.7",
-    "get-client-ip": "3.0.4",
     "html2canvas": "1.4.1",
     "localforage": "1.10.0",
     "lz-string": "1.5.0",

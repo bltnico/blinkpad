@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { Redis } from "@upstash/redis";
-import { getClientIp as getClientIpLib } from "get-client-ip";
 import { Ratelimit } from "@upstash/ratelimit";
 
 export const SHARE_TTL_SECONDS = 60 * 60 * 24;
@@ -52,8 +51,10 @@ export function getClientIp(request: Request): string {
     return "localhost";
   }
 
-  let ip: string | undefined;
-  ip = getClientIpLib(request);
+  let ip: string | null;
+  const nfIp = request.headers.get("x-nf-client-connection-ip");
+  const xff = request.headers.get("x-forwarded-for");
+  ip = nfIp || (xff && xff.split(",")[0].trim());
   if (ip) {
     return ip;
   }
