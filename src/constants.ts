@@ -8,3 +8,4 @@ export const POP_OUT_BUTTON_ID = "popout";
 export const DEBOUNCE_DELAY_MS = 700;
 export const COLOR_SCHEME_BUTTON_ID = "color-scheme";
 export const COLOR_SCHEME_STORAGE_KEY = "color-scheme-preference";
+export const SHARE_QUERY_PARAM = "share";
