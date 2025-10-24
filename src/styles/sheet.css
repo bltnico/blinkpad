@@ -5,7 +5,7 @@
 
 .note-sheet-backdrop {
   background: var(--sheet-backdrop-color) !important;
-  backdrop-filter: grayscale(1) blur(10px);
+  backdrop-filter: blur(2px);
 }
 
 .note-sheet-container {

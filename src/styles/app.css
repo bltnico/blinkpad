@@ -9,7 +9,7 @@
   --nav-button-bg: rgba(0, 0, 0, 0.5);
   --nav-button-hover-bg: rgba(0, 0, 0, 0.8);
   --nav-height: 84px;
-  --sheet-backdrop-color: rgba(0, 0, 0, 0.8);
+  --sheet-backdrop-color: rgba(0, 0, 0, 0.5);
   --sheet-card-bg: rgba(255, 255, 255, 0.06);
   --sheet-card-border: rgba(255, 255, 255, 0.12);
   --sheet-card-hover-bg: rgba(255, 255, 255, 0.14);
@@ -41,7 +41,7 @@
   --nav-panel-border: rgba(255, 255, 255, 0.3);
   --nav-button-bg: rgba(0, 0, 0, 0.5);
   --nav-button-hover-bg: rgba(0, 0, 0, 0.8);
-  --sheet-backdrop-color: rgba(0, 0, 0, 0.8);
+  --sheet-backdrop-color: rgba(0, 0, 0, 0.5);
   --sheet-card-bg: rgba(255, 255, 255, 0.06);
   --sheet-card-border: rgba(255, 255, 255, 0.12);
   --sheet-card-hover-bg: rgba(255, 255, 255, 0.14);
@@ -60,7 +60,7 @@
   --nav-panel-border: rgba(0, 0, 0, 0.05);
   --nav-button-bg: rgba(255, 255, 255, 0.6);
   --nav-button-hover-bg: rgba(255, 255, 255, 0.8);
-  --sheet-backdrop-color: rgba(255, 255, 255, 0.8);
+  --sheet-backdrop-color: rgba(255, 255, 255, 0.5);
   --sheet-card-bg: rgba(255, 255, 255, 0.8);
   --sheet-card-border: rgba(0, 0, 0, 0.08);
   --sheet-card-hover-bg: rgba(33, 53, 71, 0.08);
