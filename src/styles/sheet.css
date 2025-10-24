@@ -311,15 +311,19 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   text-overflow: ellipsis;
-  text-wrap: nowrap;
   overflow: hidden;
+  display: -webkit-box;
+  min-height: 48px;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .note-card__meta {
   font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--sheet-text-muted);
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .note-sheet-grid__item.is-active .note-card {
