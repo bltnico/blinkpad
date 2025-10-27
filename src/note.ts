@@ -4,6 +4,7 @@ import {
   DEBOUNCE_DELAY_MS,
   NOTE_KEY_PREFIX,
   DEFAULT_STORAGE_KEY,
+  SHARE_QUERY_PARAM,
 } from "./constants.ts";
 import storage from "./storage.ts";
 import { deleteNoteMetadata, saveNoteMetadata } from "./utils/noteMetadata.ts";
@@ -266,6 +267,10 @@ function normalizeNoteElement(element: HTMLDivElement): string {
   }
 
   return element.innerHTML;
+}
+
+export function getNormalizedNoteMarkup(element: HTMLDivElement): string {
+  return normalizeNoteElement(element);
 }
 
 function updateDocumentTitles(sourceElement: HTMLDivElement) {
@@ -647,9 +652,89 @@ export function initializeNoteContent(
   const storageKey = getStorageKey();
   const sync = createNoteSynchronizer(element, channel, storageKey);
 
-  void readStoredValue(storageKey).then((savedValue) => {
-    sync.apply(savedValue);
-  });
+  const tryConsumeSharedNote = async (): Promise<boolean> => {
+    const params = new URLSearchParams(window.location.search);
+    const shareKey = params.get(SHARE_QUERY_PARAM);
+    if (!shareKey) {
+      return false;
+    }
+
+    const removeShareParam = () => {
+      params.delete(SHARE_QUERY_PARAM);
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${
+        nextQuery ? `?${nextQuery}` : ""
+      }${window.location.hash}`;
+      window.history.replaceState(null, "", nextUrl);
+    };
+
+    const navigateToLocalNote = () => {
+      const encodedSlug = encodeURIComponent(shareKey);
+      const nextPath = shareKey === "root" ? "/" : `/${encodedSlug}`;
+      window.location.replace(nextPath);
+    };
+
+    try {
+      const response = await fetch(
+        `/.netlify/functions/share?key=${encodeURIComponent(shareKey)}`
+      );
+      if (!response.ok) {
+        if (response.status === 404) {
+          removeShareParam();
+        }
+        return false;
+      }
+
+      const data = (await response.json()) as { html?: unknown };
+      if (typeof data?.html !== "string") {
+        removeShareParam();
+        return false;
+      }
+
+      const ownerDocument = element.ownerDocument ?? document;
+      const sanitizedMarkup = sanitizeHtml(data.html);
+      const normalizedMarkup = normalizeMarkup(sanitizedMarkup, ownerDocument);
+      const persistedTitle = deriveTitleFromMarkup(normalizedMarkup);
+      const sharedStorageKey = `${NOTE_KEY_PREFIX}${shareKey}`;
+
+      try {
+        await Promise.all([
+          writeStoredValue(sharedStorageKey, normalizedMarkup),
+          saveNoteMetadata({
+            slug: shareKey,
+            title: persistedTitle,
+            updatedAt: Date.now(),
+          }),
+        ]);
+      } catch (persistError) {
+        console.error("Unable to persist shared note locally", persistError);
+        sync.apply(normalizedMarkup);
+        removeShareParam();
+        return true;
+      }
+
+      navigateToLocalNote();
+      return true;
+    } catch (error) {
+      console.error("Unable to consume shared note", error);
+      return false;
+    }
+  };
+
+  const loadInitialContent = async () => {
+    const sharedApplied = await tryConsumeSharedNote();
+    if (sharedApplied) {
+      return;
+    }
+    try {
+      const savedValue = await readStoredValue(storageKey);
+      sync.apply(savedValue);
+    } catch (error) {
+      console.error("Unable to initialize note content", error);
+    }
+  };
+
+  void loadInitialContent();
 
   element.addEventListener("paste", (event: ClipboardEvent) => {
     if (tryHandleHtmlPaste(element, event)) {
